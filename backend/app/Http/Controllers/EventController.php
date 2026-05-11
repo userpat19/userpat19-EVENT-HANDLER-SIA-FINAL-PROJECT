@@ -1,63 +1,65 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Http\Controllers\Controller;
+
 use App\Models\Event;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
     public function index() {
-        return Event::all();
+        return response()->json(Event::all(), 200);
     }
 
+    // This handles the POST /events
     public function store(Request $request)
     {
-        $request->validate([
-            'eventTitle' => 'required|max:100',
-            'eventDescription' => 'nullable',
-            'eventDate' => 'required|date',
-            'eventLocation' => 'required|max:100',
+        $validated = $request->validate([
+            'eventTitle'       => 'required|string|max:100',
+            'eventDescription' => 'nullable|string',
+            'eventDate'        => 'required|date',
+            'eventLocation'    => 'required|string|max:100',
         ]);
 
-        $event = Event::create([
-            'eventTitle' => $request->eventTitle,
-            'eventDescription' => $request->eventDescription,
-            'eventDate' => $request->eventDate,
-            'eventLocation' => $request->eventLocation,
-            'createdAt' => now(),
-            'updatedAt' => now(),
-        ]);
+        $event = Event::create($validated);
 
         return response()->json([
             'message' => 'Event created successfully',
-            'event' => $event
+            'event'   => $event
         ], 201);
     }
 
-    public function update(Request $request, $id) {
-        $event = Event::findOrFail($id);
-        $event->update($request->all());
-        return $event;
+    // This handles the PUT /events/{id}
+    public function update(Request $request, $id)
+    {
+        $event = Event::find($id);
+
+        if (!$event) {
+            return response()->json(['message' => 'Event not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'eventTitle'       => 'sometimes|string|max:100',
+            'eventDescription' => 'nullable|string',
+            'eventDate'        => 'sometimes|date',
+            'eventLocation'    => 'sometimes|string|max:100',
+        ]);
+
+        $event->update($validated);
+
+        return response()->json([
+            'message' => 'Event updated successfully',
+            'event'   => $event
+        ], 200);
     }
 
     public function destroy($id)
     {
         $event = Event::find($id);
-
         if (!$event) {
-        return response()->json([
-            'message' => 'Event not found'
-            ], 404);
+            return response()->json(['message' => 'Event not found'], 404);
         }
-
         $event->delete();
-
-        return response()->json([
-        'message' => 'Event deleted successfully'
-        ]);
+        return response()->json(['message' => 'Event deleted successfully'], 200);
     }
 }
-
-
-
