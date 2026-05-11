@@ -1,55 +1,61 @@
 import '../models/event.dart';
+import 'api_service.dart';
 
 class EventRepository {
   EventRepository._();
 
-  static final List<Event> events = [
-    Event(
-      id: 'event-1',
-      title: 'City Run Festival',
-      location: 'Central Park',
-      description: 'A lively run with music, food trucks, and prizes for all ages.',
-      date: DateTime.now().add(const Duration(days: 5, hours: 16)),
-      capacity: 180,
-    ),
-    Event(
-      id: 'event-2',
-      title: 'Startup Networking Night',
-      location: 'Lumen Hall',
-      description: 'Meet local founders, enjoy energetic talks, and build valuable connections.',
-      date: DateTime.now().add(const Duration(days: 11, hours: 18)),
-      capacity: 120,
-    ),
-    Event(
-      id: 'event-3',
-      title: 'Art & Innovation Expo',
-      location: 'Riverfront Center',
-      description: 'Explore creative installations and inspiring demonstrations from local artists.',
-      date: DateTime.now().add(const Duration(days: 20, hours: 10)),
-      capacity: 250,
-    ),
-  ];
+  static List<Event> _cachedEvents = [];
 
-  static void add(Event event) {
-    events.insert(0, event);
-  }
-
-  static void update(Event updatedEvent) {
-    final index = events.indexWhere((event) => event.id == updatedEvent.id);
-    if (index != -1) {
-      events[index] = updatedEvent;
+  static Future<List<Event>> getEvents() async {
+    try {
+      _cachedEvents = await ApiService.fetchEvents();
+      return _cachedEvents;
+    } catch (e) {
+      print('Error fetching events: $e');
+      return _cachedEvents;
     }
   }
 
-  static void remove(String id) {
-    events.removeWhere((event) => event.id == id);
+  static Future<void> add(Event event) async {
+    try {
+      final createdEvent = await ApiService.createEvent(event);
+      _cachedEvents.insert(0, createdEvent);
+    } catch (e) {
+      print('Error adding event: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> update(Event updatedEvent) async {
+    try {
+      await ApiService.updateEvent(updatedEvent.id, updatedEvent);
+      final index = _cachedEvents.indexWhere((event) => event.id == updatedEvent.id);
+      if (index != -1) {
+        _cachedEvents[index] = updatedEvent;
+      }
+    } catch (e) {
+      print('Error updating event: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> remove(String id) async {
+    try {
+      await ApiService.deleteEvent(id);
+      _cachedEvents.removeWhere((event) => event.id == id);
+    } catch (e) {
+      print('Error removing event: $e');
+      rethrow;
+    }
   }
 
   static Event? findById(String id) {
     try {
-      return events.firstWhere((event) => event.id == id);
+      return _cachedEvents.firstWhere((event) => event.id == id);
     } catch (_) {
       return null;
     }
   }
+
+  static List<Event> get events => _cachedEvents;
 }
