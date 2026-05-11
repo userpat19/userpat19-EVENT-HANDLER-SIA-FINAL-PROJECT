@@ -31,4 +31,25 @@ class Event {
       capacity: capacity ?? this.capacity,
     );
   }
+
+  factory Event.fromJson(Map<String, dynamic> json) {
+    return Event(
+      id: json['id'].toString(),
+      title: json['title'] ?? '',
+      location: json['location'] ?? '',
+      description: json['description'] ?? '',
+      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      capacity: json['capacity'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'location': location,
+      'description': description,
+      'date': date.toIso8601String(),
+      'capacity': capacity,
+    };
+  }
 }

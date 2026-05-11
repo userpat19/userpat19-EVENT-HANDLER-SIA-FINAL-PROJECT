@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/event_repository.dart';
+import '../data/api_service.dart';
 import '../models/event.dart';
 import 'event_details_screen.dart';
 import 'event_form_screen.dart';
@@ -15,6 +16,14 @@ class EventListScreen extends StatefulWidget {
 }
 
 class _EventListScreenState extends State<EventListScreen> {
+  late Future<List<Event>> _eventsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _eventsFuture = EventRepository.getEvents();
+  }
+
   void _openDetails(Event event) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => EventDetailsScreen(event: event)),
@@ -26,7 +35,7 @@ class _EventListScreenState extends State<EventListScreen> {
       MaterialPageRoute(builder: (_) => EventFormScreen(event: event)),
     );
     if (changed == true) {
-      setState(() {});
+      setState(() => _eventsFuture = EventRepository.getEvents());
     }
   }
 
@@ -45,14 +54,34 @@ class _EventListScreenState extends State<EventListScreen> {
       },
     );
     if (shouldDelete == true) {
-      EventRepository.remove(event.id);
-      setState(() {});
+      try {
+        await EventRepository.remove(event.id);
+        setState(() => _eventsFuture = EventRepository.getEvents());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
     }
+  }
+
+  void _logout() {
+    ApiService.clearAuth();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final events = EventRepository.events;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isAdmin ? 'Admin Events' : 'Available Events'),
@@ -73,12 +102,7 @@ class _EventListScreenState extends State<EventListScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
-              );
-            },
+            onPressed: _logout,
             tooltip: 'Logout',
           ),
         ],
@@ -90,48 +114,71 @@ class _EventListScreenState extends State<EventListScreen> {
               icon: const Icon(Icons.add),
             )
           : null,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Events to explore',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      body: FutureBuilder<List<Event>>(
+        future: _eventsFuture,
+        builder: (context, snapshot) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Events to explore',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Browse upcoming activities and stay engaged with exciting experiences.',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 15),
+                  ),
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: snapshot.connectionState == ConnectionState.waiting
+                        ? const Center(child: CircularProgressIndicator())
+                        : snapshot.hasError
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                                    const SizedBox(height: 16),
+                                    Text('Error: ${snapshot.error}', textAlign: TextAlign.center),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () => setState(() => _eventsFuture = EventRepository.getEvents()),
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : snapshot.data?.isEmpty ?? true
+                                ? Center(
+                                    child: Text(
+                                      'No events available yet.',
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: snapshot.data!.length,
+                                    separatorBuilder: (context, index) => const SizedBox(height: 14),
+                                    itemBuilder: (context, index) {
+                                      final event = snapshot.data![index];
+                                      return _EventTile(
+                                        event: event,
+                                        isAdmin: widget.isAdmin,
+                                        onDelete: () => _confirmDelete(event),
+                                        onEdit: () => _openForm(event),
+                                        onView: () => _openDetails(event),
+                                      );
+                                    },
+                                  ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Browse upcoming activities and stay engaged with exciting experiences.',
-                style: TextStyle(color: Colors.grey[700], fontSize: 15),
-              ),
-              const SizedBox(height: 18),
-              Expanded(
-                child: events.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No events available yet.',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                        ),
-                      )
-                    : ListView.separated(
-                        itemCount: events.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 14),
-                        itemBuilder: (context, index) {
-                          final event = events[index];
-                          return _EventTile(
-                            event: event,
-                            isAdmin: widget.isAdmin,
-                            onDelete: () => _confirmDelete(event),
-                            onEdit: () => _openForm(event),
-                            onView: () => _openDetails(event),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
