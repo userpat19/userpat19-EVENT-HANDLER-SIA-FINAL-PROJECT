@@ -28,10 +28,10 @@ class EventRepository {
 
   static Future<void> update(Event updatedEvent) async {
     try {
-      await ApiService.updateEvent(updatedEvent.id, updatedEvent);
+      final event = await ApiService.updateEvent(updatedEvent.id, updatedEvent);
       final index = _cachedEvents.indexWhere((event) => event.id == updatedEvent.id);
       if (index != -1) {
-        _cachedEvents[index] = updatedEvent;
+        _cachedEvents[index] = event;
       }
     } catch (e) {
       print('Error updating event: $e');

@@ -154,8 +154,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter capacity';
                     }
-                    if (int.tryParse(value.trim()) == null || int.parse(value.trim()) <= 0) {
-                      return 'Capacity must be a number greater than zero';
+                    if (int.tryParse(value.trim()) == null || int.parse(value.trim()) < 0) {
+                      return 'Capacity must be a non-negative number';
                     }
                     return null;
                   },

@@ -1,41 +1,52 @@
 import 'package:flutter/material.dart';
-import '../screens/event_list_screen.dart';
-import '../screens/register_screen.dart';
 import '../data/api_service.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _submit(bool isAdmin) async {
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
       try {
-        final success = await ApiService.login(
+        final success = await ApiService.register(
+          _firstNameController.text.trim(),
+          _lastNameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text,
-          isAdmin,
         );
-        
-        if (success && mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => EventListScreen(isAdmin: isAdmin),
-            ),
-          );
-        } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login failed. Please check your credentials.')),
-          );
+
+        if (mounted) {
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Registration successful. You can now log in.')),
+            );
+            Navigator.of(context).pop();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Registration failed. Please try again.')),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -49,13 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override
@@ -78,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'EventFlow',
+                    'Register',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 42,
@@ -89,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'A bright and accessible event platform for users and admins.',
+                    'Create your user account to browse events and join the community.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70, fontSize: 16),
                   ),
@@ -104,70 +108,76 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           children: [
                             TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
+                              controller: _firstNameController,
                               enabled: !_isLoading,
-                              decoration: const InputDecoration(
-                                labelText: 'Email address',
-                                hintText: 'admin@example.com',
-                              ),
+                              decoration: const InputDecoration(labelText: 'First name'),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your email';
+                                  return 'Please enter your first name';
                                 }
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _lastNameController,
+                              enabled: !_isLoading,
+                              decoration: const InputDecoration(labelText: 'Last name'),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your last name';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled: !_isLoading,
+                              decoration: const InputDecoration(labelText: 'Email address'),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your email';
+                                }
+                                if (!value.contains('@')) {
+                                  return 'Please enter a valid email';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
                             TextFormField(
                               controller: _passwordController,
                               obscureText: true,
                               enabled: !_isLoading,
-                              decoration: const InputDecoration(
-                                labelText: 'Password',
-                                hintText: '••••••••',
-                              ),
+                              decoration: const InputDecoration(labelText: 'Password'),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Please enter your password';
+                                }
+                                if (value.length < 6) {
+                                  return 'Password must be at least 6 characters';
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 28),
                             ElevatedButton(
-                              onPressed: _isLoading ? null : () => _submit(false),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(52),
-                                backgroundColor: const Color(0xFF2f9bff),
-                              ),
+                              onPressed: _isLoading ? null : _submit,
+                              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                               child: _isLoading
                                   ? const SizedBox(
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                                     )
-                                  : const Text('Continue as User', style: TextStyle(fontSize: 16)),
-                            ),
-                            const SizedBox(height: 14),
-                            OutlinedButton(
-                              onPressed: _isLoading ? null : () => _submit(true),
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(52),
-                                side: const BorderSide(color: Colors.white54),
-                              ),
-                              child: const Text('Continue as Admin', style: TextStyle(fontSize: 16, color: Colors.black87)),
+                                  : const Text('Create account', style: TextStyle(fontSize: 16)),
                             ),
                             const SizedBox(height: 12),
                             TextButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                                      );
-                                    },
-                              child: const Text('Create an account', style: TextStyle(color: Colors.white70)),
+                              onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                              child: const Text('Back to login', style: TextStyle(color: Colors.white70)),
                             ),
                           ],
                         ),

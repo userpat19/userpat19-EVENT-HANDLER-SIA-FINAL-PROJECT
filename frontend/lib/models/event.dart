@@ -35,10 +35,14 @@ class Event {
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
       id: json['id'].toString(),
-      title: json['title'] ?? '',
-      location: json['location'] ?? '',
-      description: json['description'] ?? '',
-      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      title: json['title'] ?? json['eventTitle'] ?? '',
+      location: json['location'] ?? json['eventLocation'] ?? '',
+      description: json['description'] ?? json['eventDescription'] ?? '',
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
+          : json['eventDate'] != null
+              ? DateTime.parse(json['eventDate'])
+              : DateTime.now(),
       capacity: json['capacity'] ?? 0,
     );
   }
@@ -46,9 +50,13 @@ class Event {
   Map<String, dynamic> toJson() {
     return {
       'title': title,
+      'eventTitle': title,
       'location': location,
+      'eventLocation': location,
       'description': description,
+      'eventDescription': description,
       'date': date.toIso8601String(),
+      'eventDate': date.toIso8601String(),
       'capacity': capacity,
     };
   }

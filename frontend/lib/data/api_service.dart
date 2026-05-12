@@ -30,6 +30,26 @@ class ApiService {
     }
   }
 
+  static Future<bool> register(String firstName, String lastName, String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      return response.statusCode == 201;
+    } catch (e) {
+      print('Register error: $e');
+      return false;
+    }
+  }
+
   static Future<List<Event>> fetchEvents() async {
     try {
       final response = await http.get(
@@ -58,7 +78,8 @@ class ApiService {
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return Event.fromJson(data);
+        final eventPayload = data is Map<String, dynamic> && data.containsKey('event') ? data['event'] : data;
+        return Event.fromJson(eventPayload);
       }
       throw Exception('Failed to create event');
     } catch (e) {
@@ -77,7 +98,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return Event.fromJson(data);
+        final eventPayload = data is Map<String, dynamic> && data.containsKey('event') ? data['event'] : data;
+        return Event.fromJson(eventPayload);
       }
       throw Exception('Failed to update event');
     } catch (e) {
