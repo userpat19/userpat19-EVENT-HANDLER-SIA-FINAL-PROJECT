@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         MaterialPageRoute(builder: (_) => const RegisterScreen()),
                                       );
                                     },
-                              child: const Text('Create an account', style: TextStyle(color: Colors.white70)),
+                              child: const Text('Create an account', style: TextStyle(color: Colors.black87)),
                             ),
                           ],
                         ),

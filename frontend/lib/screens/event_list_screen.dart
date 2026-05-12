@@ -63,11 +63,7 @@ class _EventListScreenState extends State<EventListScreen> {
           );
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
-        }
+        // Error handling removed as requested
       }
     }
   }
