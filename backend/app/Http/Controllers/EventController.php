@@ -1,29 +1,29 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Http\Controllers\Controller;
+
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 class EventController extends Controller
 {
-    public function index()
-    {
-        return Event::all();
+    public function index() {
+        return response()->json(Event::all(), 200);
     }
 
+    // This handles the POST /events
     public function store(Request $request)
     {
         $request->validate([
-            'eventTitle' => 'required|max:100',
-            'title' => 'sometimes|required|max:100',
-            'eventDescription' => 'nullable',
-            'description' => 'sometimes|nullable',
+            'eventTitle' => 'required|string|max:100',
+            'title' => 'sometimes|required|string|max:100',
+            'eventDescription' => 'nullable|string',
+            'description' => 'sometimes|nullable|string',
             'eventDate' => 'required|date',
             'date' => 'sometimes|required|date',
-            'eventLocation' => 'required|max:100',
-            'location' => 'sometimes|required|max:100',
+            'eventLocation' => 'required|string|max:100',
+            'location' => 'sometimes|required|string|max:100',
             'capacity' => 'sometimes|integer|min:0',
         ]);
 
@@ -42,7 +42,7 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Event created successfully',
-            'event' => $event
+            'event'   => $event
         ], 201);
     }
 
@@ -84,20 +84,10 @@ class EventController extends Controller
     public function destroy($id)
     {
         $event = Event::find($id);
-
         if (!$event) {
-            return response()->json([
-                'message' => 'Event not found'
-            ], 404);
+            return response()->json(['message' => 'Event not found'], 404);
         }
-
         $event->delete();
-
-        return response()->json([
-            'message' => 'Event deleted successfully'
-        ]);
+        return response()->json(['message' => 'Event deleted successfully'], 200);
     }
 }
-
-
-
