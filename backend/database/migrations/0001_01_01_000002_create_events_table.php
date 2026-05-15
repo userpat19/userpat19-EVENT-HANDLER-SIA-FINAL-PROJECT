@@ -14,6 +14,7 @@ return new class extends Migration
             $table->text('eventDescription')->nullable();
             $table->dateTime('eventDate');
             $table->string('eventLocation', 100);
+            $table->integer('capacity')->default(0); // Added capacity here
             $table->timestamp('createdAt')->useCurrent();
             $table->timestamp('updatedAt')->useCurrent()->useCurrentOnUpdate();
         });
