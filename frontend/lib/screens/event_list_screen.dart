@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../data/event_repository.dart';
 import '../data/api_service.dart';
@@ -17,11 +19,24 @@ class EventListScreen extends StatefulWidget {
 
 class _EventListScreenState extends State<EventListScreen> {
   late Future<List<Event>> _eventsFuture;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _eventsFuture = EventRepository.getEvents();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 20), (_) => _refreshEvents());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshEvents() async {
+    if (!mounted) return;
+    setState(() => _eventsFuture = EventRepository.getEvents());
   }
 
   void _openDetails(Event event) {
@@ -148,18 +163,22 @@ class _EventListScreenState extends State<EventListScreen> {
                                   ],
                                 ),
                               )
-                            : snapshot.data?.isEmpty ?? true
-                                ? Center(
-                                    child: Text(
-                                      'No events available yet.',
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                                    ),
-                                  )
-                                : ListView.separated(
-                                    itemCount: snapshot.data!.length,
+                            : ValueListenableBuilder<List<Event>>(
+                                valueListenable: EventRepository.eventsNotifier,
+                                builder: (context, events, child) {
+                                  if (events.isEmpty) {
+                                    return Center(
+                                      child: Text(
+                                        'No events available yet.',
+                                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                                      ),
+                                    );
+                                  }
+                                  return ListView.separated(
+                                    itemCount: events.length,
                                     separatorBuilder: (context, index) => const SizedBox(height: 14),
                                     itemBuilder: (context, index) {
-                                      final event = snapshot.data![index];
+                                      final event = events[index];
                                       return _EventTile(
                                         event: event,
                                         isAdmin: widget.isAdmin,
@@ -168,7 +187,9 @@ class _EventListScreenState extends State<EventListScreen> {
                                         onView: () => _openDetails(event),
                                       );
                                     },
-                                  ),
+                                  );
+                                },
+                              ),
                   ),
                 ],
               ),
