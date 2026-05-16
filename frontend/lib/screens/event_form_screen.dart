@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import '../data/event_repository.dart';
 import '../models/event.dart';
 
@@ -6,6 +7,8 @@ class EventFormScreen extends StatefulWidget {
   final Event? event;
 
   const EventFormScreen({super.key, this.event});
+
+  static const Color brandOrange = Color(0xFFFF6B35);
 
   @override
   State<EventFormScreen> createState() => _EventFormScreenState();
@@ -46,17 +49,23 @@ class _EventFormScreenState extends State<EventFormScreen> {
       initialDate: _eventDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: EventFormScreen.brandOrange),
+          ),
+          child: child!,
+        );
+      },
     );
-    if (!mounted || selectedDate == null) {
-      return;
-    }
+    if (!mounted || selectedDate == null) return;
+
     final selectedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_eventDate),
     );
-    if (!mounted || selectedTime == null) {
-      return;
-    }
+    if (!mounted || selectedTime == null) return;
+
     setState(() {
       _eventDate = DateTime(
         selectedDate.year,
@@ -89,19 +98,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
         await EventRepository.add(newEvent);
       }
 
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -109,104 +112,180 @@ class _EventFormScreenState extends State<EventFormScreen> {
   Widget build(BuildContext context) {
     final isEditing = widget.event != null;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Event' : 'Create Event'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _titleController,
-                  enabled: !_isLoading,
-                  decoration: const InputDecoration(labelText: 'Event title'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter an event title';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _locationController,
-                  enabled: !_isLoading,
-                  decoration: const InputDecoration(labelText: 'Location'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a location';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _capacityController,
-                  enabled: !_isLoading,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Capacity'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter capacity';
-                    }
-                    if (int.tryParse(value.trim()) == null || int.parse(value.trim()) < 0) {
-                      return 'Capacity must be a non-negative number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _descriptionController,
-                  enabled: !_isLoading,
-                  maxLines: 4,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please add a brief description';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Event date & time',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha((0.8 * 255).round()),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: _isLoading ? null : _pickDate,
-                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: Text(
-                    '${_eventDate.month}/${_eventDate.day}/${_eventDate.year} • ${_eventDate.hour.toString().padLeft(2, '0')}:${_eventDate.minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _saveEvent,
-                  style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(54)),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                        )
-                      : Text(isEditing ? 'Save changes' : 'Create event', style: const TextStyle(fontSize: 16)),
-                ),
-              ],
-            ),
-          ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: const BackButton(color: Colors.black87),
+        title: Text(
+          isEditing ? 'Update Details' : 'New Event',
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
+      body: Stack(
+        children: [
+          // Background accents
+          Positioned(
+            bottom: -50,
+            right: -50,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                color: EventFormScreen.brandOrange.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+          
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Configure your event',
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Fill in the details below to publish your event.', 
+                        style: TextStyle(color: Colors.black45, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 32),
+
+                    _buildField(
+                      controller: _titleController,
+                      label: 'Event Title',
+                      hint: 'E.g. Tech Conference 2026',
+                      icon: Icons.title_rounded,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildField(
+                            controller: _locationController,
+                            label: 'Location',
+                            hint: 'Room 404',
+                            icon: Icons.place_rounded,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildField(
+                            controller: _capacityController,
+                            label: 'Capacity',
+                            hint: '100',
+                            icon: Icons.people_alt_rounded,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    _buildField(
+                      controller: _descriptionController,
+                      label: 'Description',
+                      hint: 'Tell everyone what it\'s about...',
+                      icon: Icons.description_rounded,
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Date Picker Area
+                    const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: _isLoading ? null : _pickDate,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: EventFormScreen.brandOrange.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: EventFormScreen.brandOrange.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, color: EventFormScreen.brandOrange),
+                            const SizedBox(width: 16),
+                            Text(
+                              '${_eventDate.month}/${_eventDate.day}/${_eventDate.year} at ${_eventDate.hour.toString().padLeft(2, '0')}:${_eventDate.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: EventFormScreen.brandOrange),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.edit_calendar_rounded, color: EventFormScreen.brandOrange, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+                    
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _saveEvent,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: EventFormScreen.brandOrange,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(64),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                        elevation: 0,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text(isEditing ? 'Save Changes' : 'Create Event', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          enabled: !_isLoading,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            hintText: hint,
+            prefixIcon: Icon(icon, color: Colors.black38, size: 20),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(color: EventFormScreen.brandOrange, width: 2),
+            ),
+          ),
+          validator: (value) => (value == null || value.trim().isEmpty) ? 'Required' : null,
+        ),
+      ],
     );
   }
 }
